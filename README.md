@@ -5,9 +5,9 @@
 <sup>1</sup> Department of Vector Biology, Liverpool School of Tropical Medicine, Liverpool, United Kingdom 
 <sup>2</sup> Department of Biology, University of Oxford, Oxford, United Kingdom  
 
-**Correspondence**: [jennifer.lord@lstmed.ac.uk](mailto:jennifer.lord@lstmed.ac.uk)
+**Correspondence**: [jennifer.suzanne.lord@gmail.com](mailto:jennifer.suzanne.lord@gmail.com)
 
-doi: 
+doi: tbc
 
 
 ## Abstract
@@ -19,18 +19,20 @@ Our results show that identical host communities can yield very different transm
 
 These findings highlight that variations in the local spatial context of host-vector interactions can lead to variations in disease risk. Locally-informed surveillance and targeted interventions may therefore be important for the effective control of zoonotic mosquito-borne viruses.
 
-This papaer has been published in ...
+This paper has been submitted to PLoS Neglected Tropical Diseases.
 
 ## Contents
 - `scripts/`: contains all code for analyzing the model. Brief descriptions of each file:
 
-  - **model.R**: ...
+  - **model.R**: the functions needed to carry out numerical simulations of the ordinary differential equation model.
 
-  - **parameters.R**: ...
+  - **parameters.R**: the parameter values used in numerical simulations of the dynamic model and in calculating R0.
 
-  - **R0.R**: performs ---
+  - **R0.R**: produces the plots to demonstrate how host and vector distributions vary and the consequences for R0.
 
-  - **simulate.R**: ...
+  - **simulate.R**: runs the dynamic model.
+  
+  - **supportingFunctions.R**: additional functions needed to run the model.
 
 ## Getting Started
 To run the model:  
