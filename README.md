@@ -1,4 +1,4 @@
-# The impacts of host community composition, spatial structuring and vector host choice on zoonotic arbovirus transmission
+# The impacts of host community composition, spatial structuring and vector host choice on zoonotic mosquito-borne virus transmission
 
 **Jennifer S. Lord** ([ORCID](https://orcid.org/0000-0001-6616-1526))<sup>1, *</sup>, **Michael B. Bonsall** ([ORCID](https://orcid.org/0000-0003-0250-0423))<sup>2</sup>, **Tijani A. Sulaimon** ([ORCID](https://orcid.org/0000-0002-9735-8548))<sup>1, *</sup>
 
