@@ -68,24 +68,18 @@ all_distributions <- bind_rows(
           )
     )
   }, mc.cores = mc.cores )
-) |>  
-  mutate(
-    scenario = case_when(
-    hostDist == "equal" ~ "Equal",
-    hostDist == "exp:hostx"  ~ paste("Exp: comp. (x), decay =", decay),
-    hostDist == "exp:hosty"  ~ paste("Exp: dead-end (y), decay =", decay) 
-    ),
-    mosAgg = paste("Interference = ", infC)
-  ) 
+) 
+
 
 # Apply to data
-all_distributions <- all_distributions |>  
+all_distributions2 <- all_distributions |>  
   refactor_host_dist()
+
 
 
 # ----- Plot A: Host Distribution per Patch -----
 # This plot shows the number of hosts in each patch, distinguishing competent (H_c) and dead-end (H_de) hosts.
-plot_a <- all_distributions |>  
+plot_a <- all_distributions2 |>  
   filter(n_patches == 10, infC == 0, de2comp == 1) |>  
   pivot_longer(cols = c(H_c, H_de), names_to = "species", 
                values_to = "host_count") |>  
@@ -97,16 +91,16 @@ plot_a <- all_distributions |>
  # scale_fill_brewer(palette = "Dark2", name = "Host species") +
   scale_fill_manual(values = cols[c(3, 5)], name = "Host species") +
   labs(x = "Patch", y = "Number of hosts", 
-       title = "Distribution of host composition across patches") +
-  theme_minimal(base_size = 14) +
+       title = "A) Distribution of hosts across patches") +
+  theme_minimal(base_size = 12) +
   theme(legend.position = "inside",
         legend.position.inside = c(0.8, 0.9),
         legend.background = element_rect(fill = NA, colour = NA),
         axis.line = element_line(color = 'black'),
-        axis.text=element_text(size=12),
-        legend.text=element_text(size=12),
-        strip.text=element_text(size=12),
-        axis.title=element_text(size=12),
+        axis.text=element_text(size=11),
+        legend.text=element_text(size=11),
+        strip.text=element_text(size=11),
+        axis.title=element_text(size=11),
         ,plot.tag.position = c(0, 1)
         )
 
@@ -128,7 +122,7 @@ plot_a <- all_distributions |>
 
 # ----- Plot C: Mosquito Distribution across Patches -----
 # How biting vectors (delta) are distributed among patches across different interference levels.
-plot_b <- all_distributions |>  
+plot_b <- all_distributions2 |>  
   filter(n_patches == 10, de2comp == 1) |>  
   ggplot(aes(x = factor(infC), y = delta_vect, fill = as.factor(patch))) +
  # geom_bar(stat = "identity", width = 0.85) +
@@ -138,9 +132,9 @@ plot_b <- all_distributions |>
   scale_x_discrete(labels = agg_labels) +
   labs(x = "Level of interference between mosquitoes",
        y = "Distribution",
-       title = "Distribution of mosquitoes across patches",
+       title = "B) Distribution of mosquitoes across patches",
        fill = "Patch") +
-  theme_classic(base_size = 14) +
+  theme_classic(base_size = 12) +
   theme(axis.text.y = element_text(size=10),
         axis.text.x = element_text(size=9),
         legend.text = element_text(size=10),
@@ -148,15 +142,15 @@ plot_b <- all_distributions |>
         legend.direction = "vertical",
         legend.byrow = T,
         legend.position.inside = c(0.75, 0.9),
-        strip.text=element_text(size=12),
-        axis.title=element_text(size=12),
+        strip.text=element_text(size=11),
+        axis.title=element_text(size=11),
         strip.background = element_blank()
         ,plot.tag.position = c(0, 1)
         ) + 
   guides(fill=guide_legend(ncol=5, theme = theme(legend.byrow = T)))
 
 # # ----- Plot C: bites per Competent Hosts -----
-plot_c <- all_distributions |>  
+plot_c <- all_distributions2 |>  
   filter(n_patches == 10, de2comp == 1, hostDist != "equal") |>  
   ggplot(aes(x = factor(patch), y = NmPatch*rho/(H_c + epsilon), 
              colour = factor(infC), shape = factor(infC) )) +
@@ -165,21 +159,21 @@ plot_c <- all_distributions |>
   scale_colour_manual(values = cols, name = "", labels = agg_labels3) +
   scale_shape_manual(values = shapes, name = "", labels = agg_labels3) +
   labs(x = "Patch", y = "Bites per competent host",
-       title = "Patch-level bites per competent hos") +
-  theme_minimal(base_size = 14) +
+       title = "C) Patch-level bites per competent host") +
+  theme_minimal(base_size = 12) +
   theme(legend.position = "inside",
         legend.position.inside = c(0.25, 0.9),
         legend.background = element_rect(fill = NA, colour = NA),
         axis.line = element_line(color = 'black'),
-        axis.text=element_text(size=12),
+        axis.text=element_text(size=11),
         legend.text=element_text(size=10),
-        strip.text=element_text(size=12),
-        axis.title=element_text(size=12),
+        strip.text=element_text(size=11),
+        axis.title=element_text(size=11),
         ,plot.tag.position = c(1, 1)
         )
 
-plot_d <- all_distributions |>  
-  filter(n_patches == 10, de2comp == 1, !(scenario1 == "Equal")) |> 
+plot_d <- all_distributions2 |>  
+  filter(n_patches == 10, de2comp == 1, !(scenario1 == "Baseline: hosts equally distributed")) |> 
   group_by(scenario1, infC) %>%
   summarise(
     bites_on_competent = sum(NmPatch * rho),
@@ -190,27 +184,32 @@ plot_d <- all_distributions |>
   geom_col(position = position_dodge2(), show.legend = F) +
   scale_fill_manual(values = cols) +
   facet_wrap(~scenario1, nrow = 2, as.table = F) +
-  theme_minimal(base_size = 14) +
+  theme_minimal(base_size = 12) +
   scale_x_discrete(labels = agg_labels) +
   labs(
     x = "Level of interference between mosquitoes",
     y = "Proportion of bites",
-    title = "Overall proportion of bites on competent hosts") +
+    title = "D) Overall proportion of bites on competent hosts") +
   theme(axis.text=element_text(size=10),
-        strip.text=element_text(size=12),
-        axis.title=element_text(size=12)
+        strip.text=element_text(size=11),
+        axis.title=element_text(size=11)
         ,plot.tag.position = c(1, 1)
         )
 
 # ggsave("./outputs/overallRho.pdf", width = 12, height = 12, units = "in", dpi = 500)
 
 # ----- Arrange Plots using cowplot -----
-(plot_a/plot_b | plot_c/plot_d) +
-  plot_layout(widths = c(1, 1) ) +
-  plot_annotation(tag_levels = "A") &
-  theme(plot.tag = element_text(face = "bold", size = 14))
+#(plot_a/plot_c | plot_b/plot_d) +
+#  plot_layout(widths = c(1, 1) ) +
+#  plot_annotation(tag_levels = "A") & # theme(plot.tag = element_text(face = "bold", size = 14))
 
-# ggsave("./outputs/10patchComparisonTJ.pdf", width = 12, height = 12, units = "in", dpi = 500)
+cowplot::plot_grid(plot_a,plot_b,plot_c,plot_d, nrow=2)
+
+
+ggsave("./outputs/10patchComparisonJSL.pdf", width = 12, height = 12, units = "in", dpi = 500)
+
+
+
 
 
 all_distributions |>  

@@ -192,17 +192,17 @@ refactor_host_dist <- function(df) {
   
   # Create ordered levels with concise labels
   level_order <- c(
-    paste("Exp: dead-end (y), decay =", decays),
-    paste("Exp: comp. (x), decay =", decays),
-    "Equal"
+    paste("Dead-end hosts aggregated, \n (decay = ", decays,")",sep = ""),
+    paste("Competent hosts aggregated, \n (decay = ", decays,")",sep = ""),
+    "Baseline: hosts equally distributed"
   )
   
   df |> 
     mutate(
       scenario1 = case_when(
-        hostDist == "equal"    ~ "Equal",
-        hostDist == "exp:hostx"  ~ paste("Exp: comp. (x), decay =", decay),
-        hostDist == "exp:hosty"  ~ paste("Exp: dead-end (y), decay =", decay)
+        hostDist == "equal"    ~ "Baseline: hosts equally distributed",
+        hostDist == "exp:hostx"  ~ paste("Competent hosts aggregated, \n (decay = ", decay,")",sep = ""),
+        hostDist == "exp:hosty"  ~ paste("Dead-end hosts aggregated, \n (decay = ", decay,")",sep = "")
       ),
       scenario1 = factor(scenario1, levels = level_order)
     ) |> 
