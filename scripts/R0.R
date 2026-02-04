@@ -212,7 +212,7 @@ ggsave("./outputs/10patchComparisonJSL.pdf", width = 12, height = 12, units = "i
 
 
 
-all_distributions |>  
+all_distributions2 |>  
   filter(infC == 0, de2comp == 1) |>  
   mutate(prop_competent = H_c / (H_c + H_de) ) |>  
   pivot_longer(cols = c(prop_competent, rho)) |>  
@@ -221,18 +221,18 @@ all_distributions |>
   ggplot(aes(x = n_patches, y = value, group = patch) ) +
   geom_jitter(size = 1.5, width = 0.2, height = 0.01, alpha = 0.5 ) +
   geom_hline(yintercept = 0.1, colour = "red", linetype = "dashed", linewidth = 0.8) +
-  facet_grid(scenario~name) +
+  facet_grid(scenario1~name) +
   theme_bw() +
   labs(y = "Proportion",x = "Number of patches") +
   theme(strip.background = element_blank())
 # ggsave("./outputs/propCompHostVsBloodmeal.pdf", width = 12, height = 12, units = "in")
 
-all_distributions |>  
+all_distributions2 |>  
   filter(de2comp == 1) |> 
   ggplot(aes(x = n_patches, y = NmPatch*rho/(H_c + epsilon) *rho*delta_vect, 
              colour = H_c / (H_c + H_de), group = patch ) ) +
   geom_jitter(size = 1.5, width = 0.25, height = 0.015, alpha = 0.8 ) +
-  facet_grid(scenario~mosAgg, scales = "free_y") +
+  facet_grid(scenario1~mosAgg, scales = "free_y") +
   scale_color_viridis_c(option = "H", name = "Proportion\nof host x") +
   labs(
     y = "Bites per competent host x",
@@ -342,9 +342,8 @@ plot_heatmap <- expand_grid(prefComp = seq(0, 0.5, length.out = 300),
 plot_heatmap
 # ggsave("./outputs/simpleR0heatmap.pdf", width = 12, height = 10, units = "in")
 
-# Jen: This is what we compare all other scenarios to? Does this yield the same
-# result as if there was only one patch? Just thinking here to make clear that
-# this is what is usually assumed in most models (or not)?
+
+
 expand_grid(prefComp = 0.1, 
             de2Comp = 1,
             n_patches = 1:50 ) |>  
@@ -371,9 +370,9 @@ scenario_2 <- expand_grid(
   ) |> 
   mutate(
     scenario = case_when(
-    #  hostDist == "equal" ~ "Equal",
-      hostDist == "exp:hostx"  ~ paste("Exp: comp. (x), decay =", decay),
-      hostDist == "exp:hosty"  ~ paste("Exp: dead-end (y), decay =", decay) 
+    # hostDist == "equal" ~ "Equal",
+      hostDist == "exp:hostx"  ~ paste("Competent hosts aggregated, \n (decay = ", decay,")",sep = ""),
+      hostDist == "exp:hosty"  ~ paste("Dead-end hosts aggregated, \n (decay = ", decay,")",sep = "") 
       )  ) |> 
   distinct() 
 #  refactor_host_dist()
