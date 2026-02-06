@@ -459,7 +459,7 @@ plot_patches <- scenario_res_df |>
   scale_linetype_manual(values = c("solid", "dashed") ) +
   labs(x = "Number of patches", y = expression(Delta~R[0]) ) +
   theme_minimal() +
-  plotThemeFunc(leg.pos = "top")
+  plotThemeFunc(leg.pos = "bottom")
 
 plot_patches
 # ggsave("./outputs/R0PatchesbyDistnPref.pdf", width = 12, height = 10, units = "in", dpi = 500)
@@ -478,7 +478,7 @@ plot_host_comp <- scenario_res_df |>
   labs(x = "Dead-end to competent host ratio", y = expression(Delta~R[0])  ) +
   theme_minimal() +
   scale_x_log10() +
-  plotThemeFunc(leg.pos = "top")
+  plotThemeFunc(leg.pos = "bottom")
 
 plot_host_comp
 # ggsave("./outputs/R0HostCompByDistnPref.pdf", width = 12, height = 10, units = "in", dpi = 500)

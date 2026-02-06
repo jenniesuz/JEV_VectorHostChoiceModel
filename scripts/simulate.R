@@ -94,32 +94,17 @@ dyn_summary <- dyn |>
 
 plot_dynamics <- dyn_summary |> 
   filter(time <= 130) |> 
-  ggplot(aes(x = time, y = meanIh, colour = as.factor(infC) )) +
-  geom_ribbon(aes(ymin = lower, ymax = upper, fill = as.factor(infC) ),
+  ggplot(aes(x = time, y = meanIh, colour = factor(infC,levels=c("0","0.9","0.1")) )) +
+  geom_ribbon(aes(ymin = lower, ymax = upper, fill = factor(infC,levels=c("0","0.9","0.1")) ),
               alpha = 0.2, colour = NA) +
   geom_line(linewidth = 0.8 ) +
   facet_wrap(~ scenario1, ncol = 2, scales = "fixed", as.table = F, drop = F ) +
   scale_colour_manual(values = cols, name = "", labels = agg_labels3) +
   scale_fill_manual(values = cols, name = "", labels = agg_labels3) +
   scale_y_continuous(n.breaks = 3) +
-  labs(x = "Time (days)", y = expression(I[x]/H[x]) ) +
+  labs(x = "Time (days)", y = "Proportion of hosts that are infectious")  +
   theme_minimal() +
-  theme(
-    axis.line = element_line(color = 'black')
-    ,text=element_text(size=12)
-    ,plot.margin=unit(c(0.2,0.1,0.1,0.1), "cm")
-    ,axis.text=element_text(size=12)
-    ,legend.key.size = unit(0.8,"line")
-    ,legend.background = element_blank()
-    ,legend.text=element_text(size=12)
-    ,strip.text=element_text(size=12)
-    ,axis.title = element_text(size = 14)
-    ,legend.position= "none"
-    ,legend.title=element_text(size=12)
-    ,strip.background = element_rect(colour="white", fill="white")
-    ,strip.text.x = element_text(size = 12)
-    ,panel.border = element_blank()
-  )
+  plotThemeFunc(leg.pos = "bottom")
 
 plot_dynamics
 # ggsave("./outputs/dynByHostDistInfC.pdf", width = 12, height = 12, units = "in", dpi = 500)
@@ -131,7 +116,8 @@ dyn |>
   facet_wrap(~ paste(hostDist, decay), ncol = 2, scales = "fixed" ) +
   facet_wrap(~ scenario1, ncol = 2, scales = "fixed", as.table = F, drop = F ) +
   scale_colour_manual(values = cols, name = Interference~m[p]) +
-  theme_minimal()
+  theme_minimal() +
+  plotThemeFunc(leg.pos = "bottom")
 
 
 # ( (plot_heatmap | plot_host_comp) /
