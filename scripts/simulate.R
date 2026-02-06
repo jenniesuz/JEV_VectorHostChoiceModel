@@ -35,9 +35,9 @@ combs <- expand_grid(
          ) |> 
   distinct() |> 
   mutate(scenario = case_when(
-    hostDist == "equal" ~ "Equal",
-    hostDist == "exp:hostx"  ~ paste("Exp: comp. (x), decay =", decay),
-    hostDist == "exp:hosty"  ~ paste("Exp: dead-end (y), decay =", decay) 
+    hostDist == "equal" ~ "Baseline: hosts equally distributed",
+    hostDist == "exp:hostx"  ~ paste("Competent hosts aggregated, \n (decay = ", decay,")",sep = ""),
+    hostDist == "exp:hosty"  ~ paste("Dead-end hosts aggregated, \n (decay = ", decay,")",sep = "") 
   ),
   mosAgg = paste("Interference = ", infC)
   ) |> refactor_host_dist()
@@ -78,7 +78,7 @@ sims <- mclapply(1:nrow(combs), function(x){
   
   return( cbind(combs[x, ] ,out) )                 
          
-}, mc.cores = detectCores() - 2 )
+})
 
 dyn <- bind_rows(sims)
 
@@ -104,7 +104,22 @@ plot_dynamics <- dyn_summary |>
   scale_y_continuous(n.breaks = 3) +
   labs(x = "Time (days)", y = expression(I[x]/H[x]) ) +
   theme_minimal() +
-  plotThemeFunc(leg.pos = c(0.75, 0.85))
+  theme(
+    axis.line = element_line(color = 'black')
+    ,text=element_text(size=12)
+    ,plot.margin=unit(c(0.2,0.1,0.1,0.1), "cm")
+    ,axis.text=element_text(size=12)
+    ,legend.key.size = unit(0.8,"line")
+    ,legend.background = element_blank()
+    ,legend.text=element_text(size=12)
+    ,strip.text=element_text(size=12)
+    ,axis.title = element_text(size = 14)
+    ,legend.position= "none"
+    ,legend.title=element_text(size=12)
+    ,strip.background = element_rect(colour="white", fill="white")
+    ,strip.text.x = element_text(size = 12)
+    ,panel.border = element_blank()
+  )
 
 plot_dynamics
 # ggsave("./outputs/dynByHostDistInfC.pdf", width = 12, height = 12, units = "in", dpi = 500)
@@ -144,7 +159,7 @@ dyn |>
     guides = "collect" # Merge legends
   ) +
   plot_annotation(
-    tag_levels = "A", tag_suffix = ")", tag_prefix = "(",
+    tag_levels = "A", tag_suffix = ")",
     theme = theme(plot.margin = margin(6, 6, 6))
   ) &
   theme(
@@ -154,7 +169,7 @@ dyn |>
     legend.position = "bottom")
 
 
-# ggsave("./outputs/combined_plt.pdf", width = 12, height = 12, units = "in", dpi = 500)
+# ggsave("./outputs/combined_pltJSL.pdf", width = 12, height = 12, units = "in", dpi = 500)
 
 ### copy files to LaTeX directory. Clumsy but works for now.
 latex_dir   <- "../plots/"

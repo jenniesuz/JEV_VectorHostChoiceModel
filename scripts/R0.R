@@ -7,9 +7,9 @@ library(parallel)
 library(here)
 library(lhs)
 library(parallel)
-library(sensitivity)
 library(tidyverse)
-
+library(ggplot2)
+library(sensitivity)
 # read in scripts
 source(here("scripts/parameters.R"))
 source(here("scripts/supportingFunctions.R"))
@@ -19,25 +19,26 @@ set.seed(202510)
 mc.cores <- detectCores() / 2
 
 # RColorBrewer::brewer.pal(8, "Set1")
-cols <- c("black", "#E41A1C",  "#377EB8", "#4DAF4A", "#984EA3", "#FF7F00")
+cols <- c("black",  "#377EB8", "#E41A1C", "#4DAF4A", "#984EA3", "#FF7F00")
 shapes <- c(16, 15, 17, 18)
 
 agg_labels <- c(
   "0" = "No aggregation",
-  "0.1" = expression(m[p] == 0.1),
-  "0.9" = expression(m[p] == 0.9)
+  "0.9" = expression(m[p] == 0.9),
+  "0.1" = expression(m[p] == 0.1)
 )
 
 agg_labels2 <- c(
   "0" = "No aggregation",
-  "0.1" = expression(atop("Strong aggregation", m[p] == 0.1)),
-  "0.9" = expression(atop("Weak aggregation", m[p] == 0.9))
+  "0.9" = expression(atop("Weak aggregation", m[p] == 0.9)),
+  "0.1" = expression(atop("Strong aggregation", m[p] == 0.1))
+ 
 )
 
 agg_labels3 <- c(
   "0" = "No aggregation",
-  "0.1" = expression(paste("Strong aggregation, ", m[p] == 0.1)),
-  "0.9" = expression(paste("Weak aggregation, ", m[p] == 0.9))
+  "0.9" = expression(paste("Weak aggregation, ", m[p] == 0.9)),
+  "0.1" = expression(paste("Strong aggregation, ", m[p] == 0.1))
 )
 
 ###############################################################################
@@ -101,7 +102,7 @@ plot_a <- all_distributions2 |>
         legend.text=element_text(size=11),
         strip.text=element_text(size=11),
         axis.title=element_text(size=11),
-        ,plot.tag.position = c(0, 1)
+        plot.tag.position = c(0, 1)
         )
 
 # # ----- Plot B: Proportion of Blood Meals on Competent Hosts -----
@@ -124,7 +125,7 @@ plot_a <- all_distributions2 |>
 # How biting vectors (delta) are distributed among patches across different interference levels.
 plot_b <- all_distributions2 |>  
   filter(n_patches == 10, de2comp == 1) |>  
-  ggplot(aes(x = factor(infC), y = delta_vect, fill = as.factor(patch))) +
+  ggplot(aes(x = factor(infC,levels=c("0","0.9","0.1")), y = delta_vect, fill = as.factor(patch))) +
  # geom_bar(stat = "identity", width = 0.85) +
   geom_bar(stat = "identity", width = 0.85) +
   facet_wrap(~scenario1, nrow = 3, as.table = F, drop = F) +
@@ -144,8 +145,8 @@ plot_b <- all_distributions2 |>
         legend.position.inside = c(0.75, 0.9),
         strip.text=element_text(size=11),
         axis.title=element_text(size=11),
-        strip.background = element_blank()
-        ,plot.tag.position = c(0, 1)
+        strip.background = element_blank(),
+        plot.tag.position = c(0, 1)
         ) + 
   guides(fill=guide_legend(ncol=5, theme = theme(legend.byrow = T)))
 
@@ -153,7 +154,7 @@ plot_b <- all_distributions2 |>
 plot_c <- all_distributions2 |>  
   filter(n_patches == 10, de2comp == 1, hostDist != "equal") |>  
   ggplot(aes(x = factor(patch), y = NmPatch*rho/(H_c + epsilon), 
-             colour = factor(infC), shape = factor(infC) )) +
+             colour = factor(infC,levels=c("0","0.9","0.1")), shape = factor(infC,levels=c("0","0.9","0.1")) )) +
   geom_point(size = 3) +
   facet_wrap(~scenario1, nrow = 2, as.table = F) +
   scale_colour_manual(values = cols, name = "", labels = agg_labels3) +
@@ -169,7 +170,7 @@ plot_c <- all_distributions2 |>
         legend.text=element_text(size=10),
         strip.text=element_text(size=11),
         axis.title=element_text(size=11),
-        ,plot.tag.position = c(1, 1)
+        plot.tag.position = c(1, 1)
         )
 
 plot_d <- all_distributions2 |>  
@@ -180,7 +181,7 @@ plot_d <- all_distributions2 |>
     bites_on_de = sum(NmPatch * (1-rho)),
     overall_rho        = bites_on_competent / (bites_on_competent + bites_on_de),
     .groups            = "drop") |> 
-  ggplot(aes(x = factor(infC), y = overall_rho, fill = factor(infC))) +
+  ggplot(aes(x = factor(infC,levels=c("0","0.9","0.1")), y = overall_rho, fill = factor(infC,levels=c("0","0.9","0.1")))) +
   geom_col(position = position_dodge2(), show.legend = F) +
   scale_fill_manual(values = cols) +
   facet_wrap(~scenario1, nrow = 2, as.table = F) +
@@ -206,7 +207,7 @@ plot_d <- all_distributions2 |>
 cowplot::plot_grid(plot_a,plot_b,plot_c,plot_d, nrow=2)
 
 
-ggsave("./outputs/10patchComparisonJSL.pdf", width = 12, height = 12, units = "in", dpi = 500)
+#ggsave("./outputs/10patchComparisonJSL.pdf", width = 12, height = 12, units = "in", dpi = 500)
 
 
 
@@ -449,7 +450,7 @@ scenario_res_df <- bind_rows(scenario_2_list) |>
 plot_patches <- scenario_res_df |>  
   filter(de2Comp == 1) |>  
   ggplot(aes(x = nPatches, y = mean_abs, ymin = lower_abs, 
-             ymax = upper_abs, fill = factor(infC), colour = factor(infC) ) ) +
+             ymax = upper_abs, fill = factor(infC,levels=c("0","0.9","0.1")), colour = factor(infC,levels=c("0","0.9","0.1")) ) ) +
   geom_ribbon(alpha = 0.2, colour = NA) +
   geom_line(linewidth = 0.8) +
   facet_wrap(~scenario, scales = "fixed") +
@@ -466,8 +467,8 @@ plot_patches
 plot_host_comp <- scenario_res_df |>  
   filter(nPatches == 20) |>  
   ggplot(aes(x = de2Comp, y = mean_abs, ymin = lower_abs, 
-             ymax = upper_abs, fill = as.factor(infC), 
-             colour = as.factor(infC) )) +
+             ymax = upper_abs, fill = factor(infC,levels=c("0","0.9","0.1")), 
+             colour = factor(infC,levels=c("0","0.9","0.1")) )) +
   geom_ribbon(alpha = 0.2, colour = NA) +
   geom_line(linewidth = 0.8) +
   facet_wrap(~scenario, scales = "fixed") +

@@ -161,7 +161,7 @@ plotThemeFunc <-  function(leg.pos){
              ,legend.text=element_text(size=12)
              ,strip.text=element_text(size=12)
              ,axis.title = element_text(size = 14)
-             ,legend.position =leg.pos
+             ,legend.position.inside =leg.pos
              ,legend.title=element_text(size=12)
              ,strip.background = element_rect(colour="white", fill="white")
              ,strip.text.x = element_text(size = 12)
