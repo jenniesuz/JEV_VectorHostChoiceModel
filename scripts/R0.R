@@ -19,7 +19,7 @@ set.seed(202510)
 mc.cores <- detectCores() / 2
 
 # RColorBrewer::brewer.pal(8, "Set1")
-cols <- c("black",  "#377EB8", "#E41A1C", "#4DAF4A", "#984EA3", "#FF7F00")
+cols <- c("black",  "#377EB8", "#E41A1C", "#4DAF4A", "#377EB8", "#FF7F00")
 shapes <- c(16, 15, 17, 18)
 
 agg_labels <- c(
