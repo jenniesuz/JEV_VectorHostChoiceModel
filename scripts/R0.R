@@ -197,7 +197,7 @@ plot_d <- all_distributions2 |>
         ,plot.tag.position = c(1, 1)
         )
 
-# ggsave("./outputs/overallRho.pdf", width = 12, height = 12, units = "in", dpi = 500)
+# ggsave("./outputs/overallRhoPref0.9.pdf", width = 12, height = 12, units = "in", dpi = 500)
 
 # ----- Arrange Plots using cowplot -----
 #(plot_a/plot_c | plot_b/plot_d) +
@@ -256,7 +256,7 @@ extendedR0 <- function(
     p_hv = 0.5,                  # Probability of host-to-vector transmission
     p_vh = 0.5,                  # Probability of vector-to-host transmission
     sigma = 1 / 5,               # Host recovery rate
-    prefComp = 0.1,              # Mosquito preference for competent hosts   
+    prefComp = 0.9,              # Mosquito preference for competent hosts   
     H_c_vect = 500,              # Vector of competent host numbers
     H_de_vect = 500,             # Vector of dead-end host numbers
     mos_per_comp_host = 20,      # Mosquito density to competent host ratio
@@ -362,7 +362,7 @@ expand_grid(prefComp = 0.1,
 # with higher host densities attracting more mosquitoes via long-range cues.
 # Scenario 2: Patch comparison
 scenario_2 <- expand_grid(
-  prefComp = 0.1
+  prefComp = 0.9
   ,de2Comp = seq(1, 100, length.out = 100)
   ,hostDist = c("exp:hostx", "exp:hosty")
   ,nPatches = seq(1, 50, 1)
@@ -481,7 +481,7 @@ plot_host_comp <- scenario_res_df |>
   plotThemeFunc(leg.pos = "bottom")
 
 plot_host_comp
-# ggsave("./outputs/R0HostCompByDistnPref.pdf", width = 12, height = 10, units = "in", dpi = 500)
+# ggsave("./outputs/R0HostCompByDistnPref0.9.pdf", width = 12, height = 10, units = "in", dpi = 500)
 
 
 

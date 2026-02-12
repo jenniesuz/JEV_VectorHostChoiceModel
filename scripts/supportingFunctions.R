@@ -214,7 +214,7 @@ refactor_host_dist <- function(df) {
 
 
 generate_distribution_data <- function(
-    n_patches, totalSh, de2comp = 1, hostDist, infC, prefComp = 0.1, Nm, decay = 1,
+    n_patches, totalSh, de2comp = 1, hostDist, infC, prefComp = 0.9, Nm, decay = 1,
     hostDefBeh = FALSE, m_c = NA, m_de = NA
 ){
   eps <- 1e-10

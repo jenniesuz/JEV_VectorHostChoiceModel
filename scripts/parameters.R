@@ -9,8 +9,8 @@ params <- function(          # Parameters used in the model
   ,p_hv = phostVec           # probability of host to vector transmission
   ,p_vh = pVecHost           # probability of vector to host transmission
   ,phi_h = recRate           # host recovery rate
-  ,prefComp = 0.1              # mosquito preference for competence hosts   
-  ,S_de=deadEnds              # numbers of dead-end hosts 
+  ,prefComp = 0.9            # mosquito preference for competence hosts   
+  ,S_de=deadEnds             # numbers of dead-end hosts 
   ,np=nPatches               # number of patches
   ,infC=0.6                  # interference constant for "hostDepAgg"
   ,hostDefBeh = F
