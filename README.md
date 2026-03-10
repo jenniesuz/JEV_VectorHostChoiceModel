@@ -35,7 +35,7 @@ This paper has been submitted to PLoS Neglected Tropical Diseases.
   
   - **supportingFunctions.R**: additional functions needed to run the model.
   
-  -**sutherland.R**: script to fit the aggregation function (Equation 1 in the main text) to data from Bangladesh (see Supplementary File 1). The data is contained within **tritaeHostsHH.csv**.
+  - **sutherland.R**: script to fit the aggregation function (Equation 1 in the main text) to data from Bangladesh (see Supplementary File 1). The data is contained within **tritaeHostsHH.csv**.
 
 ## Getting Started
 To run the model:  
