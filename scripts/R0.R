@@ -207,7 +207,7 @@ plot_d <- all_distributions2 |>
 cowplot::plot_grid(plot_a,plot_b,plot_c,plot_d, nrow=2)
 
 
-#ggsave("./outputs/10patchComparisonJSL.pdf", width = 12, height = 12, units = "in", dpi = 500)
+# ggsave("./outputs/10patchComparisonJSL.pdf", width = 12, height = 12, units = "in", dpi = 500)
 
 
 
@@ -233,7 +233,7 @@ all_distributions2 |>
   ggplot(aes(x = n_patches, y = NmPatch*rho/(H_c + epsilon) *rho*delta_vect, 
              colour = H_c / (H_c + H_de), group = patch ) ) +
   geom_jitter(size = 1.5, width = 0.25, height = 0.015, alpha = 0.8 ) +
-  facet_grid(scenario1~mosAgg, scales = "free_y") +
+  facet_grid(scenario1~infC, scales = "free_y") +
   scale_color_viridis_c(option = "H", name = "Proportion\nof host x") +
   labs(
     y = "Bites per competent host x",
@@ -256,7 +256,7 @@ extendedR0 <- function(
     p_hv = 0.5,                  # Probability of host-to-vector transmission
     p_vh = 0.5,                  # Probability of vector-to-host transmission
     sigma = 1 / 5,               # Host recovery rate
-    prefComp = 0.9,              # Mosquito preference for competent hosts   
+    prefComp = 0.1,              # Mosquito preference for competent hosts   
     H_c_vect = 500,              # Vector of competent host numbers
     H_de_vect = 500,             # Vector of dead-end host numbers
     mos_per_comp_host = 20,      # Mosquito density to competent host ratio
@@ -296,7 +296,8 @@ extendedR0 <- function(
     rho <- prefComp * H_c_vect / (prefComp * H_c_vect + (1 - prefComp) * H_de_vect + eps)
   } else { # Ideal‑free behaviour
     numBiteV <- alpha * Nm / (H_c_vect + eps)
-    term  <- ((1 - prefComp) / (prefComp)^(1/m_de) * numBiteV^(m_c/m_de) * H_de_vect + eps)
+   # term  <- ((1 - prefComp) / (prefComp)^(1/m_de) * numBiteV^(m_c/m_de) * H_de_vect + eps) # parenthesis wrongly placed
+    term  <- ((1 - prefComp) / prefComp)^(1/m_de) * numBiteV^(m_c/m_de) * H_de_vect
     rho <- (numBiteV * H_c_vect) / (numBiteV * H_c_vect + term )
   }
   
@@ -361,8 +362,13 @@ expand_grid(prefComp = 0.1,
 # Mosquitoes have equal access to all patches, but patches vary in suitability,
 # with higher host densities attracting more mosquitoes via long-range cues.
 # Scenario 2: Patch comparison
+
+## TJ: loop over both preference values (0.1 = main text, 0.9 = supplementary)
+pref_values <- c(0.1, 0.9)
+
+
 scenario_2 <- expand_grid(
-  prefComp = 0.9
+  prefComp = pref_values    ## Change hardcoded 0.9
   ,de2Comp = seq(1, 100, length.out = 100)
   ,hostDist = c("exp:hostx", "exp:hosty")
   ,nPatches = seq(1, 50, 1)
@@ -433,7 +439,7 @@ scenario_res_df <- bind_rows(scenario_2_list) |>
   unnest_longer(scenario_r0) |> 
   mutate(rel_change = scenario_r0 / baseline_r0,
          abs_change = scenario_r0 - baseline_r0 ) |> 
-  group_by(de2Comp, nPatches, hostDist, infC, scenario) |> 
+  group_by(prefComp, de2Comp, nPatches, hostDist, infC, scenario) |> 
   dplyr::summarise(mean_r0 = mean(scenario_r0),
                    
                    mean_rel = mean(rel_change),
@@ -447,42 +453,101 @@ scenario_res_df <- bind_rows(scenario_2_list) |>
 
 
 # no mutual mosquito interference on either hosts Vs no of patches, if deComp = 1
-plot_patches <- scenario_res_df |>  
-  filter(de2Comp == 1) |>  
-  ggplot(aes(x = nPatches, y = mean_abs, ymin = lower_abs, 
-             ymax = upper_abs, fill = factor(infC,levels=c("0","0.9","0.1")), colour = factor(infC,levels=c("0","0.9","0.1")) ) ) +
-  geom_ribbon(alpha = 0.2, colour = NA) +
-  geom_line(linewidth = 0.8) +
-  facet_wrap(~scenario, scales = "fixed") +
-  scale_colour_manual(values = cols, name = "", labels = agg_labels3) +
-  scale_fill_manual(values = cols, name = "", labels = agg_labels3) +
-  scale_linetype_manual(values = c("solid", "dashed") ) +
-  labs(x = "Number of patches", y = expression(Delta~R[0]) ) +
-  theme_minimal() +
-  plotThemeFunc(leg.pos = "bottom")
+# plot_patches <- scenario_res_df |>  
+#   filter(de2Comp == 1) |>  
+#   ggplot(aes(x = nPatches, y = mean_abs, ymin = lower_abs, 
+#              ymax = upper_abs, fill = factor(infC,levels=c("0","0.9","0.1")), colour = factor(infC,levels=c("0","0.9","0.1")) ) ) +
+#   geom_ribbon(alpha = 0.2, colour = NA) +
+#   geom_line(linewidth = 0.8) +
+#   facet_wrap(~scenario, scales = "fixed") +
+#   scale_colour_manual(values = cols, name = "", labels = agg_labels3) +
+#   scale_fill_manual(values = cols, name = "", labels = agg_labels3) +
+#   scale_linetype_manual(values = c("solid", "dashed") ) +
+#   labs(x = "Number of patches", y = expression(Delta~R[0]) ) +
+#   theme_minimal() +
+#   plotThemeFunc(leg.pos = "bottom")
+# 
+# plot_patches
+# # ggsave("./outputs/R0PatchesbyDistnPref.pdf", width = 12, height = 10, units = "in", dpi = 500)
 
+## TJ: function, generates plots for both preference values (main + supplementary)
+plot_patches_list <- lapply(pref_values, function(pref) {
+  scenario_res_df |>  
+    filter(de2Comp == 1, prefComp == pref) |>  
+    ggplot(aes(x = nPatches, y = mean_abs, ymin = lower_abs, ymax = upper_abs, 
+               fill = factor(infC,levels=c("0","0.9","0.1")), 
+               colour = factor(infC,levels=c("0","0.9","0.1")) ) ) +
+    geom_ribbon(alpha = 0.2, colour = NA) +
+    geom_line(linewidth = 0.8) +
+    facet_wrap(~scenario, scales = "fixed") +
+    scale_colour_manual(values = cols, name = "", labels = agg_labels3) +
+    scale_fill_manual(values = cols, name = "", labels = agg_labels3) +
+    scale_linetype_manual(values = c("solid", "dashed") ) +
+    labs(x = "Number of patches", y = expression(Delta~R[0])) +
+    theme_minimal() +
+    plotThemeFunc(leg.pos = "bottom")
+})
+names(plot_patches_list) <- pref_values
+
+# Main figure (pref = 0.1)
+plot_patches <- plot_patches_list[["0.1"]]
 plot_patches
-# ggsave("./outputs/R0PatchesbyDistnPref.pdf", width = 12, height = 10, units = "in", dpi = 500)
+# ggsave("./outputs/R0PatchesbyDistn_main.pdf", width = 12, height = 10, units = "in", dpi = 500)
 
-plot_host_comp <- scenario_res_df |>  
-  filter(nPatches == 20) |>  
-  ggplot(aes(x = de2Comp, y = mean_abs, ymin = lower_abs, 
-             ymax = upper_abs, fill = factor(infC,levels=c("0","0.9","0.1")), 
-             colour = factor(infC,levels=c("0","0.9","0.1")) )) +
-  geom_ribbon(alpha = 0.2, colour = NA) +
-  geom_line(linewidth = 0.8) +
-  facet_wrap(~scenario, scales = "fixed") +
-  scale_colour_manual(values = cols, name = "", labels = agg_labels3) +
-  scale_fill_manual(values = cols, name = "", labels = agg_labels3) +
-  scale_linetype_manual(values = c("solid", "dashed") ) +
-  labs(x = "Dead-end to competent host ratio", y = expression(Delta~R[0])  ) +
-  theme_minimal() +
-  scale_x_log10() +
-  plotThemeFunc(leg.pos = "bottom")
+# Supplementary figure (pref = 0.9)
+plot_patches_supp <- plot_patches_list[["0.9"]]
+plot_patches_supp
+# ggsave("./outputs/R0PatchesbyDistn_supp.pdf", width = 12, height = 10, units = "in", dpi = 500)
 
+# plot_host_comp <- scenario_res_df |>  
+#   filter(nPatches == 20) |>  
+#   ggplot(aes(x = de2Comp, y = mean_abs, ymin = lower_abs, 
+#              ymax = upper_abs, fill = factor(infC,levels=c("0","0.9","0.1")), 
+#              colour = factor(infC,levels=c("0","0.9","0.1")) )) +
+#   geom_ribbon(alpha = 0.2, colour = NA) +
+#   geom_line(linewidth = 0.8) +
+#   facet_wrap(~scenario, scales = "fixed") +
+#   scale_colour_manual(values = cols, name = "", labels = agg_labels3) +
+#   scale_fill_manual(values = cols, name = "", labels = agg_labels3) +
+#   scale_linetype_manual(values = c("solid", "dashed") ) +
+#   labs(x = "Dead-end to competent host ratio", y = expression(Delta~R[0])  ) +
+#   theme_minimal() +
+#   scale_x_log10() +
+#   plotThemeFunc(leg.pos = "bottom")
+# 
+# plot_host_comp
+# # ggsave("./outputs/R0HostCompByDistnPref0.9.pdf", width = 12, height = 10, units = "in", dpi = 500)
+
+
+## TJ: function, now generates host composition plots for both preference values
+plot_host_comp_list <- lapply(pref_values, function(pref) {
+  scenario_res_df |>  
+    filter(nPatches == 20, prefComp == pref) |>  
+    ggplot(aes(x = de2Comp, y = mean_abs, ymin = lower_abs, ymax = upper_abs, 
+               fill = factor(infC,levels=c("0","0.9","0.1")), 
+               colour = factor(infC,levels=c("0","0.9","0.1")) )) +
+    geom_ribbon(alpha = 0.2, colour = NA) +
+    geom_line(linewidth = 0.8) +
+    facet_wrap(~scenario, scales = "fixed") +
+    scale_colour_manual(values = cols, name = "", labels = agg_labels3) +
+    scale_fill_manual(values = cols, name = "", labels = agg_labels3) +
+    scale_linetype_manual(values = c("solid", "dashed") ) +
+    labs(x = "Dead-end to competent host ratio", y = expression(Delta~R[0])) +
+    theme_minimal() +
+    scale_x_log10() +
+    plotThemeFunc(leg.pos = "bottom")
+})
+names(plot_host_comp_list) <- pref_values
+
+# Main figure (pref = 0.1)
+plot_host_comp <- plot_host_comp_list[["0.1"]]
 plot_host_comp
-# ggsave("./outputs/R0HostCompByDistnPref0.9.pdf", width = 12, height = 10, units = "in", dpi = 500)
+# ggsave("./outputs/R0HostCompByDistn_main.pdf", width = 12, height = 10, units = "in", dpi = 500)
 
+# Supplementary figure (pref = 0.9)
+plot_host_comp_supp <- plot_host_comp_list[["0.9"]]
+plot_host_comp_supp
+# ggsave("./outputs/R0HostCompByDistn_supp.pdf", width = 12, height = 10, units = "in", dpi = 500)
 
 
 ###############################################################################
@@ -491,11 +556,11 @@ plot_host_comp
 # Define parameter ranges
 lower <- c(
   mu_m = 1/30,            # Mosquito mortality rate (per day)
-  mu_h = 1/365,           # Host mortality rate (per day)
+  mu_h = 1/(5*365),     # Host mortality rate (per day), was 1/365 (1yr), now 1/(5*365) for 5-year lifespan
   alpha = 1/5,           # bite rate (per day)
   p_hv = 0.001,               # Probability of infection from host to mosquito
   p_vh = 0.001,               # Probability of infection from mosquito to host
-  sigma = 1/10,           # Host recovery rate (per day)
+  sigma = 1/14,           # Host recovery rate (per day)
   prefComp = 0.001,       # Mosquito preference for competent hosts
   mos_per_comp_host = 1,# Mosquito density per competent host
   infC = 0.001,               # Mosquito aggregation parameter
@@ -506,12 +571,12 @@ lower <- c(
 
 upper <- c(
   mu_m = 1/10,            # Mosquito mortality rate (per day)
-  mu_h = 10/365,          # Host mortality rate (per day)
+  mu_h = 4/365,       # Host mortality rate (per day), was 10/365 (typo), now 4/365 for 3-months lifespan
   alpha = 1,              # bite rate (per day)
   p_hv = 1,               # Probability of infection from host to mosquito
   p_vh = 1,               # Probability of infection from mosquito to host
-  sigma = 1,              # Host recovery rate (per day)
-  prefComp = 0.5,         # Mosquito preference for competent hosts
+  sigma = 1/4,              # Host recovery rate (per day)
+  prefComp = 1,         # Mosquito preference for competent hosts
   mos_per_comp_host = 100,# Mosquito density per competent host
   infC = 1,               # Mosquito aggregation parameter
   de2Comp = 100,          # Dead-end to competent host ratio
@@ -608,7 +673,7 @@ uncertainty_data <- full_results |>
 
 uncertainty_data |>  
   ggplot(aes(x = R0_category, y = Value, colour = scenario)) +
-  geom_boxplot(width = .6, alpha = 1, outlier.alpha = 0.1, outlier.size = 0.1, notch = T) +
+  geom_boxplot(width = .5, alpha = 1, outlier.alpha = 0.1, outlier.size = 0.1, notch = T) +
   facet_wrap(~Parameter_Math, scales = "free_y", labeller = label_parsed, nrow = 4) +
   scale_colour_manual(values = cols) +
   labs(x = R[0]~category,

@@ -19,98 +19,133 @@ set.seed(202510)
 times <- seq(0, 2*365, 1) # Time steps for reporting
 nPatches <- 20          # Number of patches
 
-birdPrefs <- 0.1  # assume single 10% preference for competent hosts
+# birdPrefs <- 0.1  # assume single 10% preference for competent hosts
+## TJ: now runs for both preference values (0.1 = main, 0.9 = supplementary)
+pref_values <- c(0.1, 0.9) # assume 10% or 90% preference for competent hosts
 
 #*************Hosts Uniformly distributed*******************
-combs <- expand_grid(
-  de2comp = 1
-  ,nPatches = 20
-  ,hostDist = c("equal", "exp:hostx", "exp:hosty")
-  ,infC = c(0, 0.1, 0.9)
-  ,decay = c(0.2, 1)
-  ,rep = 1:100 ) |> 
-  mutate(decay = ifelse(hostDist == "equal", NA_real_, decay),
-        # rep = ifelse(hostDist == "equal", 1, rep),
-         infC = ifelse(hostDist == "equal", 0, infC)
-         ) |> 
-  distinct() |> 
-  mutate(scenario = case_when(
-    hostDist == "equal" ~ "Baseline: hosts equally distributed",
-    hostDist == "exp:hostx"  ~ paste("Competent hosts aggregated, \n (decay = ", decay,")",sep = ""),
-    hostDist == "exp:hosty"  ~ paste("Dead-end hosts aggregated, \n (decay = ", decay,")",sep = "") 
-  ),
-  mosAgg = paste("Interference = ", infC)
-  ) |> refactor_host_dist()
-
-combs
-
-sims <- mclapply(1:nrow(combs), function(x){
+all_sims <- lapply(pref_values, function(birdPrefs) {
   
-  ic <- initialCondsFunc(
-    nPatches = combs$nPatches[x]
-    ,totalSh = startingSh
-    ,de2comp = combs$de2comp[x]   # ratio of dead-end to competent hosts
-    ,hostDist = combs$hostDist[x]
-    ,decay = combs$decay[x]
-  )
+  combs <- expand_grid(
+    de2comp = 1
+    ,nPatches = 20
+    ,hostDist = c("equal", "exp:hostx", "exp:hosty")
+    ,infC = c(0, 0.1, 0.9)
+    ,decay = c(0.2, 1)
+    ,rep = 1:100 ) |> 
+    mutate(decay = ifelse(hostDist == "equal", NA_real_, decay),
+           # rep = ifelse(hostDist == "equal", 1, rep),
+           infC = ifelse(hostDist == "equal", 0, infC)
+    ) |> 
+    distinct() |> 
+    mutate(scenario = case_when(
+      hostDist == "equal" ~ "Baseline: hosts equally distributed",
+      hostDist == "exp:hostx"  ~ paste("Competent hosts aggregated, \n (decay = ", decay,")",sep = ""),
+      hostDist == "exp:hosty"  ~ paste("Dead-end hosts aggregated, \n (decay = ", decay,")",sep = "") 
+    ),
+    mosAgg = paste("Interference = ", infC)
+    ) |> refactor_host_dist()
   
-  simDat <- as.data.frame(
-    lsoda(y = ic[[1]],
-          times = times,
-          func = mod,
-          parms = params(prefComp = birdPrefs,
-                         np = combs$nPatches[x],
-                         S_de = as.vector(ic[[2]]),
-                         infC = combs$infC[x] )
-          )
+  sims <- mclapply(1:nrow(combs), function(x){
+    
+    ic <- initialCondsFunc(
+      nPatches = combs$nPatches[x]
+      ,totalSh = startingSh
+      ,de2comp = combs$de2comp[x]   # ratio of dead-end to competent hosts
+      ,hostDist = combs$hostDist[x]
+      ,decay = combs$decay[x]
+    )
+    
+    simDat <- as.data.frame(
+      lsoda(y = ic[[1]],
+            times = times,
+            func = mod,
+            parms = params(prefComp = birdPrefs,
+                           np = combs$nPatches[x],
+                           S_de = as.vector(ic[[2]]),
+                           infC = combs$infC[x] )
+      )
     ) 
+    
+    out <- simDat |> 
+      pivot_longer(!c(time, Sv, Iv), 
+                   names_to = c("compartment", "patch"),
+                   names_sep = "_"
+      ) |> 
+      group_by(time, Sv, Iv, compartment) |>
+      summarise(value = sum(value), .groups = "drop") |>  
+      pivot_wider(names_from = compartment,
+                  values_from = value)
+    
+    
+    return( cbind(combs[x, ] ,out) )                 
+    
+  })
   
-  out <- simDat |> 
-    pivot_longer(!c(time, Sv, Iv), 
-                 names_to = c("compartment", "patch"),
-                 names_sep = "_"
-                 ) |> 
-    group_by(time, Sv, Iv, compartment) |>
-    summarise(value = sum(value), .groups = "drop") |>  
-    pivot_wider(names_from = compartment,
-                values_from = value)
+  bind_rows(sims) |> 
+    mutate(prefComp = birdPrefs)  ## tag each run with its pref value
   
-  
-  return( cbind(combs[x, ] ,out) )                 
-         
-})
+}) |> bind_rows()
 
-dyn <- bind_rows(sims)
+dyn <- all_sims
 
 #***************************Hosts Exp distributed*******************
 
 dyn_summary <- dyn |> 
   mutate(propIh = Ih/(Sh + Ih + Rh)) |> 
-  group_by(scenario1, infC, time) |> 
+  group_by(prefComp, scenario1, infC, time) |>  ## TJ: added prefComp to groups
   summarise(meanIh = mean(propIh),
-            lower = Rmisc::CI(propIh)[[1]],
-            upper = Rmisc::CI(propIh)[[3]],
+            lower = Rmisc::CI(propIh)[["lower"]], # change to named indexing
+            upper = Rmisc::CI(propIh)[["upper"]],
             .groups = "drop" )
 
-plot_dynamics <- dyn_summary |> 
-  filter(time <= 130) |> 
-  ggplot(aes(x = time, y = meanIh, colour = factor(infC,levels=c("0","0.9","0.1")) )) +
-  geom_ribbon(aes(ymin = lower, ymax = upper, fill = factor(infC,levels=c("0","0.9","0.1")) ),
-              alpha = 0.2, colour = NA) +
-  geom_line(linewidth = 0.8 ) +
-  facet_wrap(~ scenario1, ncol = 2, scales = "fixed", as.table = F, drop = F ) +
-  scale_colour_manual(values = cols, name = "", labels = agg_labels3) +
-  scale_fill_manual(values = cols, name = "", labels = agg_labels3) +
-  scale_y_continuous(n.breaks = 3) +
-  labs(x = "Time (days)", y = "Proportion of hosts that are infectious")  +
-  theme_minimal() +
-  plotThemeFunc(leg.pos = "bottom")
+# plot_dynamics <- dyn_summary |> 
+#   filter(time <= 130) |> 
+#   ggplot(aes(x = time, y = meanIh, colour = factor(infC,levels=c("0","0.9","0.1")) )) +
+#   geom_ribbon(aes(ymin = lower, ymax = upper, fill = factor(infC,levels=c("0","0.9","0.1")) ),
+#               alpha = 0.2, colour = NA) +
+#   geom_line(linewidth = 0.8 ) +
+#   facet_wrap(~ scenario1, ncol = 2, scales = "fixed", as.table = F, drop = F ) +
+#   scale_colour_manual(values = cols, name = "", labels = agg_labels3) +
+#   scale_fill_manual(values = cols, name = "", labels = agg_labels3) +
+#   scale_y_continuous(n.breaks = 3) +
+#   labs(x = "Time (days)", y = "Proportion of hosts that are infectious")  +
+#   theme_minimal() +
+#   plotThemeFunc(leg.pos = "bottom")
+# 
+# plot_dynamics
+# # ggsave("./outputs/dynByHostDistInfC.pdf", width = 12, height = 12, units = "in", dpi = 500)
 
+## TJ: generate dynamics plots for both preference values
+plot_dynamics_list <- lapply(pref_values, function(pref) {
+  dyn_summary |> 
+    filter(time <= 130, prefComp == pref) |> 
+    ggplot(aes(x = time, y = meanIh, colour = factor(infC,levels=c("0","0.9","0.1")) )) +
+    geom_ribbon(aes(ymin = lower, ymax = upper, fill = factor(infC,levels=c("0","0.9","0.1")) ),
+                alpha = 0.2, colour = NA) +
+    geom_line(linewidth = 0.8 ) +
+    facet_wrap(~ scenario1, ncol = 2, scales = "fixed", as.table = F, drop = F ) +
+    scale_colour_manual(values = cols, name = "", labels = agg_labels3) +
+    scale_fill_manual(values = cols, name = "", labels = agg_labels3) +
+    scale_y_continuous(n.breaks = 3) +
+    labs(x = "Time (days)", y = "Proportion of hosts that are infectious") +
+    theme_minimal() +
+    plotThemeFunc(leg.pos = "bottom")
+})
+names(plot_dynamics_list) <- pref_values
+
+# Main figure (pref = 0.1)
+plot_dynamics <- plot_dynamics_list[["0.1"]]
 plot_dynamics
-# ggsave("./outputs/dynByHostDistInfC.pdf", width = 12, height = 12, units = "in", dpi = 500)
+# ggsave("./outputs/dynByHostDistInfC_main.pdf", width = 12, height = 12, units = "in", dpi = 500)
+
+# Supplementary figure (pref = 0.9)
+plot_dynamics_supp <- plot_dynamics_list[["0.9"]]
+plot_dynamics_supp
+# ggsave("./outputs/dynByHostDistInfC_supp.pdf", width = 12, height = 12, units = "in", dpi = 500)
 
 dyn |>
-  filter(time <= 250) |>
+  filter(time <= 250, prefComp == 0.1) |>    ## TJ: filter to main pref 
   ggplot(aes(x=time, y = Ih, colour = as.factor(infC), group = interaction(rep, infC) )) +
   geom_line(linewidth = 0.3, alpha = 1 ) +
   facet_wrap(~ paste(hostDist, decay), ncol = 2, scales = "fixed" ) +
@@ -138,6 +173,7 @@ dyn |>
 #     legend.position = "bottom",
 #     legend.box = "horizontal")
 
+## Main combined figure (pref = 0.1)
 ( (plot_host_comp/plot_patches) | plot_dynamics ) +
   plot_layout(
     heights = c(1, 1), # Equal row heights
@@ -154,8 +190,26 @@ dyn |>
     plot.tag.location = "margin",
     legend.position = "bottom")
 
+# ggsave("./outputs/combined_pltJSL_main.pdf", width = 12, height = 12, units = "in", dpi = 500)
 
-# ggsave("./outputs/combined_pltJSL.pdf", width = 12, height = 12, units = "in", dpi = 500)
+## TJ: Supplementary combined figure (pref = 0.9)
+( (plot_host_comp_supp/plot_patches_supp) | plot_dynamics_supp ) +
+  plot_layout(
+    heights = c(1, 1),
+    widths = c(1, 1),
+    guides = "collect"
+  ) +
+  plot_annotation(
+    tag_levels = "A", tag_suffix = ")",
+    theme = theme(plot.margin = margin(6, 6, 6))
+  ) &
+  theme(
+    plot.tag = element_text(face = "bold", size = 16),
+    plot.tag.position = "topleft",
+    plot.tag.location = "margin",
+    legend.position = "bottom")
+
+# ggsave("./outputs/combined_pltJSL_supp.pdf", width = 12, height = 12, units = "in", dpi = 500)
 
 ### copy files to LaTeX directory. Clumsy but works for now.
 latex_dir   <- "../plots/"
