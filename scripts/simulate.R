@@ -8,8 +8,11 @@ library(here)
 
 # read in scripts
 source(here(".//scripts//model.R"))
-source(here(".//scripts//parameters.R"))
+#source(here(".//scripts//parameters.R"))
 source(here(".//scripts//supportingFunctions.R"))
+
+##************parameters*************
+
 
 ##################################################################
 #****************Run different scenarios**********************

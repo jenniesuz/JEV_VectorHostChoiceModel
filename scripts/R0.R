@@ -9,7 +9,7 @@ library(lhs)
 library(parallel)
 library(tidyverse)
 library(ggplot2)
-library(sensitivity)
+#library(sensitivity)
 # read in scripts
 source(here("scripts/parameters.R"))
 source(here("scripts/supportingFunctions.R"))
@@ -198,11 +198,6 @@ plot_d <- all_distributions2 |>
         )
 
 # ggsave("./outputs/overallRhoPref0.9.pdf", width = 12, height = 12, units = "in", dpi = 500)
-
-# ----- Arrange Plots using cowplot -----
-#(plot_a/plot_c | plot_b/plot_d) +
-#  plot_layout(widths = c(1, 1) ) +
-#  plot_annotation(tag_levels = "A") & # theme(plot.tag = element_text(face = "bold", size = 14))
 
 cowplot::plot_grid(plot_a,plot_b,plot_c,plot_d, nrow=2)
 
