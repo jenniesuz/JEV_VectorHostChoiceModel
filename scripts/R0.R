@@ -312,8 +312,8 @@ host_dist_params <- c("equal", "exp:hostx", "exp:hosty")
 
 host_dist_labels <- c(
   "equal" = "Equal",
-  "exp:hostx" = "Exp: competent host x",
-  "exp:hosty" = "Exp: dead-end host y"
+  "exp:hostx" = "Competent hosts aggregated",
+  "exp:hosty" = "Dead-end hosts aggregated"
 )
 
 parameter_labels <- c(
