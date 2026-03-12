@@ -10,9 +10,10 @@ library(parallel)
 library(tidyverse)
 library(ggplot2)
 #library(sensitivity)
-# read in scripts
-source(here("scripts/parameters.R"))
+
+#source(here("scripts/parameters.R"))
 source(here("scripts/supportingFunctions.R"))
+source(here("scripts/R0_function.R"))
 
 set.seed(202510)
 
@@ -41,304 +42,46 @@ agg_labels3 <- c(
   "0.1" = expression(paste("Strong aggregation, ", m[p] == 0.1))
 )
 
-###############################################################################
-####################### Plots host distribution in patches ####################
-###############################################################################
 
-# Define parameter ranges
-parameter_grid <- expand_grid(
-  n_patches = 1:50                    # Fixed number of patches
-  ,hostDist = c("equal", "exp:hostx", "exp:hosty")   # Distribution types
-  ,infC = c(0, 0.1, 0.9)
-  ,decay = c(0.2, 1)
-  ,de2comp = seq(1, 50, 1) ) |> 
-  mutate(decay = ifelse(hostDist == "equal", NA, decay) ) |> 
-  distinct()
-
-all_distributions <- bind_rows(
-  pbmcapply::pbmclapply(1:nrow(parameter_grid), function(i){ # for each row of parameter_grid
-    cbind(parameter_grid[i, ],                              # take the row
-          generate_distribution_data(                       # apply the function
-            n_patches = parameter_grid$n_patches[i],
-            totalSh = startingSh,
-            de2comp = parameter_grid$de2comp[i],
-            hostDist = parameter_grid$hostDist[i],
-            infC = parameter_grid$infC[i],
-            Nm = startingSv,
-            decay = parameter_grid$decay[i]
-          )
-    )
-  }, mc.cores = mc.cores )
-) 
-
-
-# Apply to data
-all_distributions2 <- all_distributions |>  
-  refactor_host_dist()
-
-
-
-# ----- Plot A: Host Distribution per Patch -----
-# This plot shows the number of hosts in each patch, distinguishing competent (H_c) and dead-end (H_de) hosts.
-plot_a <- all_distributions2 |>  
-  filter(n_patches == 10, infC == 0, de2comp == 1) |>  
-  pivot_longer(cols = c(H_c, H_de), names_to = "species", 
-               values_to = "host_count") |>  
-  mutate(species = factor(species, levels = c("H_c", "H_de"), 
-                          labels = c("Competent hosts", "Dead-end hosts"))) |>  
-  ggplot(aes(x = factor(patch), y = host_count, fill = species)) +
-  geom_bar(stat = "identity") +
-  facet_wrap(~scenario1, nrow = 3, as.table = F, drop = F) +
- # scale_fill_brewer(palette = "Dark2", name = "Host species") +
-  scale_fill_manual(values = cols[c(3, 5)], name = "Host species") +
-  labs(x = "Patch", y = "Number of hosts", 
-       title = "A) Distribution of hosts across patches") +
-  theme_minimal(base_size = 12) +
-  theme(legend.position = "inside",
-        legend.position.inside = c(0.8, 0.9),
-        legend.background = element_rect(fill = NA, colour = NA),
-        axis.line = element_line(color = 'black'),
-        axis.text=element_text(size=11),
-        legend.text=element_text(size=11),
-        strip.text=element_text(size=11),
-        axis.title=element_text(size=11),
-        plot.tag.position = c(0, 1)
-        )
-
-# # ----- Plot B: Proportion of Blood Meals on Competent Hosts -----
-# plot_rho <- all_distributions |>
-#   filter(n_patches == 10, infC == 0, de2comp == 1) |>
-#   ggplot(aes(x = factor(patch), y = rho)) +
-#   geom_point(size = 2.5) +
-#   facet_wrap(~scenario1, nrow = 3, as.table = F, drop = F) +
-#   labs(x = "Patch", y = "Proportion",
-#        title = "Bloodmeal on competent hosts in each patch") +
-#   theme_minimal() +
-#   theme(plot.title = element_text(face = "bold"),
-#         axis.text=element_text(size=10),
-#         legend.text=element_text(size=10),
-#         strip.text=element_text(size=10),
-#         axis.title=element_text(size=12),
-#         axis.line = element_line(color = 'black'))
-
-# ----- Plot C: Mosquito Distribution across Patches -----
-# How biting vectors (delta) are distributed among patches across different interference levels.
-plot_b <- all_distributions2 |>  
-  filter(n_patches == 10, de2comp == 1) |>  
-  ggplot(aes(x = factor(infC,levels=c("0","0.9","0.1")), y = delta_vect, fill = as.factor(patch))) +
- # geom_bar(stat = "identity", width = 0.85) +
-  geom_bar(stat = "identity", width = 0.85) +
-  facet_wrap(~scenario1, nrow = 3, as.table = F, drop = F) +
-  scale_fill_brewer(palette = "Spectral", direction = 1) +
-  scale_x_discrete(labels = agg_labels) +
-  labs(x = "Level of interference between mosquitoes",
-       y = "Distribution",
-       title = "B) Distribution of mosquitoes across patches",
-       fill = "Patch") +
-  theme_classic(base_size = 12) +
-  theme(axis.text.y = element_text(size=10),
-        axis.text.x = element_text(size=9),
-        legend.text = element_text(size=10),
-        legend.position = "inside",
-        legend.direction = "vertical",
-        legend.byrow = T,
-        legend.position.inside = c(0.75, 0.9),
-        strip.text=element_text(size=11),
-        axis.title=element_text(size=11),
-        strip.background = element_blank(),
-        plot.tag.position = c(0, 1)
-        ) + 
-  guides(fill=guide_legend(ncol=5, theme = theme(legend.byrow = T)))
-
-# # ----- Plot C: bites per Competent Hosts -----
-plot_c <- all_distributions2 |>  
-  filter(n_patches == 10, de2comp == 1, hostDist != "equal") |>  
-  ggplot(aes(x = factor(patch), y = NmPatch*rho/(H_c + epsilon), 
-             colour = factor(infC,levels=c("0","0.9","0.1")), shape = factor(infC,levels=c("0","0.9","0.1")) )) +
-  geom_point(size = 3) +
-  facet_wrap(~scenario1, nrow = 2, as.table = F) +
-  scale_colour_manual(values = cols, name = "", labels = agg_labels3) +
-  scale_shape_manual(values = shapes, name = "", labels = agg_labels3) +
-  labs(x = "Patch", y = "Bites per competent host",
-       title = "C) Patch-level bites per competent host") +
-  theme_minimal(base_size = 12) +
-  theme(legend.position = "inside",
-        legend.position.inside = c(0.25, 0.9),
-        legend.background = element_rect(fill = NA, colour = NA),
-        axis.line = element_line(color = 'black'),
-        axis.text=element_text(size=11),
-        legend.text=element_text(size=10),
-        strip.text=element_text(size=11),
-        axis.title=element_text(size=11),
-        plot.tag.position = c(1, 1)
-        )
-
-plot_d <- all_distributions2 |>  
-  filter(n_patches == 10, de2comp == 1, !(scenario1 == "Baseline: hosts equally distributed")) |> 
-  group_by(scenario1, infC) %>%
-  summarise(
-    bites_on_competent = sum(NmPatch * rho),
-    bites_on_de = sum(NmPatch * (1-rho)),
-    overall_rho        = bites_on_competent / (bites_on_competent + bites_on_de),
-    .groups            = "drop") |> 
-  ggplot(aes(x = factor(infC,levels=c("0","0.9","0.1")), y = overall_rho, fill = factor(infC,levels=c("0","0.9","0.1")))) +
-  geom_col(position = position_dodge2(), show.legend = F) +
-  scale_fill_manual(values = cols) +
-  facet_wrap(~scenario1, nrow = 2, as.table = F) +
-  theme_minimal(base_size = 12) +
-  scale_x_discrete(labels = agg_labels) +
-  labs(
-    x = "Level of interference between mosquitoes",
-    y = "Proportion of bites",
-    title = "D) Overall proportion of bites on competent hosts") +
-  theme(axis.text=element_text(size=10),
-        strip.text=element_text(size=11),
-        axis.title=element_text(size=11)
-        ,plot.tag.position = c(1, 1)
-        )
-
-# ggsave("./outputs/overallRhoPref0.9.pdf", width = 12, height = 12, units = "in", dpi = 500)
-
-cowplot::plot_grid(plot_a,plot_b,plot_c,plot_d, nrow=2)
-
-
-# ggsave("./outputs/10patchComparisonJSL.pdf", width = 12, height = 12, units = "in", dpi = 500)
-
-
-
-
-
-all_distributions2 |>  
-  filter(infC == 0, de2comp == 1) |>  
-  mutate(prop_competent = H_c / (H_c + H_de) ) |>  
-  pivot_longer(cols = c(prop_competent, rho)) |>  
-  mutate(name = factor(name, levels = c("prop_competent", "rho"), 
-                       labels = c("Proportion of competent host x", "Blood meal on competent host x") )) |>  
-  ggplot(aes(x = n_patches, y = value, group = patch) ) +
-  geom_jitter(size = 1.5, width = 0.2, height = 0.01, alpha = 0.5 ) +
-  geom_hline(yintercept = 0.1, colour = "red", linetype = "dashed", linewidth = 0.8) +
-  facet_grid(scenario1~name) +
-  theme_bw() +
-  labs(y = "Proportion",x = "Number of patches") +
-  theme(strip.background = element_blank())
-# ggsave("./outputs/propCompHostVsBloodmeal.pdf", width = 12, height = 12, units = "in")
-
-all_distributions2 |>  
-  filter(de2comp == 1) |> 
-  ggplot(aes(x = n_patches, y = NmPatch*rho/(H_c + epsilon) *rho*delta_vect, 
-             colour = H_c / (H_c + H_de), group = patch ) ) +
-  geom_jitter(size = 1.5, width = 0.25, height = 0.015, alpha = 0.8 ) +
-  facet_grid(scenario1~infC, scales = "free_y") +
-  scale_color_viridis_c(option = "H", name = "Proportion\nof host x") +
-  labs(
-    y = "Bites per competent host x",
-    x = "Number of patches" ) +
-  theme_minimal() +
-  theme(strip.background = element_blank(),
-        text = element_text(size = 12),
-        strip.text = element_text(size = 8) )
-# ggsave("./outputs/propCompHostVsBloodmealByInfC.pdf", width = 12, height = 12, units = "in")  
-
-
-
-###############################################################################
-############################# R0 for full spatial model #######################
-###############################################################################
-extendedR0 <- function( 
-    mu_m = 1 / 20,               # Mosquito mortality rate         
-    mu_h = 1 / 365,              # Host mortality rate      
-    alpha = 1 / 3,               # Mosquito bite rate
-    p_hv = 0.5,                  # Probability of host-to-vector transmission
-    p_vh = 0.5,                  # Probability of vector-to-host transmission
-    sigma = 1 / 5,               # Host recovery rate
-    prefComp = 0.1,              # Mosquito preference for competent hosts   
-    H_c_vect = 500,              # Vector of competent host numbers
-    H_de_vect = 500,             # Vector of dead-end host numbers
-    mos_per_comp_host = 20,      # Mosquito density to competent host ratio
-    infC = 0                     # Interference constant for host aggregation
-    ,hostDefBeh = FALSE
-    ,m_c = NA
-    ,m_de = NA ){
-  
-  eps <- 1e-10
-  
-  H_c_vect  <- as.numeric(H_c_vect)
-  H_de_vect <- as.numeric(H_de_vect)
-  
-  H_tot_vect <- H_c_vect + H_de_vect # Total hosts per patch
-  
-#  Nh <- sum(Nh_vect)
-  
- # propNh_vect <- Nh_vect/Nh # proportion of hosts in each patch
-  np <- length(H_tot_vect)          # Number of patches
-  
-  H_c_total <- sum(H_c_vect)
-  H_de_total <- sum(H_de_vect)
-  
-  Nm <- mos_per_comp_host * H_c_total
-  
-  # Mosquito distribution
-  if (infC == 0) {
-    delta_vect <- rep(1/np, np)
-  } else {
-    propH <- H_tot_vect / sum(H_tot_vect)
-    delta <- propH^(1/infC)
-    delta_vect <- delta / sum(delta)
-  }
-  
-  # Per-patch rho (bloodmeal on host x)
-  if (!hostDefBeh) {
-    rho <- prefComp * H_c_vect / (prefComp * H_c_vect + (1 - prefComp) * H_de_vect + eps)
-  } else { # Ideal‑free behaviour
-    numBiteV <- alpha * Nm / (H_c_vect + eps)
-   # term  <- ((1 - prefComp) / (prefComp)^(1/m_de) * numBiteV^(m_c/m_de) * H_de_vect + eps) # parenthesis wrongly placed
-    term  <- ((1 - prefComp) / prefComp)^(1/m_de) * numBiteV^(m_c/m_de) * H_de_vect
-    rho <- (numBiteV * H_c_vect) / (numBiteV * H_c_vect + term )
-  }
-  
-
-  term_vec_to_host <- alpha * p_vh * rho * delta_vect / mu_m
-  term_host_to_vec <- alpha * p_hv * rho * delta_vect * Nm / ((sigma + mu_h) * H_c_vect + eps)
-  
-  R0 <- sqrt(sum(term_vec_to_host * term_host_to_vec))
-  
-  return(R0)
-}
 
 #*################################################################
-#******************** Baseline scenario **************************
+#******************** R0 Baseline scenario **************************
 #*################################################################
 #* Mosquitoes have equal access to all patches, and all patches 
 #* are equally (equal no. of hosts in each patch) suitable 
 #* (and no 'long-range' host-seeking behavior)
 # a. Within-patch host choice is independent of vector density
-plot_heatmap <- expand_grid(prefComp = seq(0, 0.5, length.out = 300), 
-            de2Comp = seq(1, 50, length.out = 300),
-            n_patches = 20 ) |>  
-  rowwise() |> 
-  mutate(H_de = de2Comp*startingSh,
-         r0 = extendedR0(H_c_vect = rep(startingSh/n_patches, n_patches),
-                         H_de_vect = rep(H_de/n_patches, n_patches),
-                         prefComp = prefComp,
-                         infC = 0
-         ) ) |>  
-  ggplot(aes(x = prefComp, y = de2Comp, z = r0)) +
-  geom_raster(aes(fill = r0) ) +
-  geom_contour(color = "gray10", breaks = 1, linewidth = 1) +
-  scale_fill_distiller(palette = "Spectral", direction = -1) +
-  labs(x = expression("Preference for competent hosts, " * eta[x]),
-       y = "Dead-end to competent host ratio",
-       fill = expression(R[0])) +
-  annotate("text", x = 0.2, y = 20, label = "R[0] < 1", parse = TRUE, size = 8, color = "black") +
-  annotate("text", x = 0.4, y = 2.5, label = "R[0] > 1", parse = TRUE, size = 8, color = "black") +
-  theme_minimal() +
-  theme(axis.text=element_text(size=12),
-      legend.text=element_text(size=12),
-      axis.title=element_text(size=12))
-
-plot_heatmap
+# plot_heatmap <- expand_grid(prefComp = seq(0, 0.5, length.out = 300), 
+#             de2Comp = seq(1, 50, length.out = 300),
+#             n_patches = 20 ) |>  
+#   rowwise() |> 
+#   mutate(H_de = de2Comp*startingSh,
+#          r0 = extendedR0(H_c_vect = rep(startingSh/n_patches, n_patches),
+#                          H_de_vect = rep(H_de/n_patches, n_patches),
+#                          prefComp = prefComp,
+#                          infC = 0
+#          ) ) |>  
+#   ggplot(aes(x = prefComp, y = de2Comp, z = r0)) +
+#   geom_raster(aes(fill = r0) ) +
+#   geom_contour(color = "gray10", breaks = 1, linewidth = 1) +
+#   scale_fill_distiller(palette = "Spectral", direction = -1) +
+#   labs(x = expression("Preference for competent hosts, " * eta[x]),
+#        y = "Dead-end to competent host ratio",
+#        fill = expression(R[0])) +
+#   annotate("text", x = 0.2, y = 20, label = "R[0] < 1", parse = TRUE, size = 8, color = "black") +
+#   annotate("text", x = 0.4, y = 2.5, label = "R[0] > 1", parse = TRUE, size = 8, color = "black") +
+#   theme_minimal() +
+#   theme(axis.text=element_text(size=12),
+#       legend.text=element_text(size=12),
+#       axis.title=element_text(size=12))
+# 
+# plot_heatmap
 # ggsave("./outputs/simpleR0heatmap.pdf", width = 12, height = 10, units = "in")
 
+
+startingSh <- 500       # Number of susceptible hosts
+startingSv <- 10000     # Number of susceptible vectors
+mosquitoes_per_comp_host <- startingSv/startingSh
 
 
 expand_grid(prefComp = 0.1, 
@@ -447,25 +190,8 @@ scenario_res_df <- bind_rows(scenario_2_list) |>
                    .groups = "drop" ) 
 
 
-# no mutual mosquito interference on either hosts Vs no of patches, if deComp = 1
-# plot_patches <- scenario_res_df |>  
-#   filter(de2Comp == 1) |>  
-#   ggplot(aes(x = nPatches, y = mean_abs, ymin = lower_abs, 
-#              ymax = upper_abs, fill = factor(infC,levels=c("0","0.9","0.1")), colour = factor(infC,levels=c("0","0.9","0.1")) ) ) +
-#   geom_ribbon(alpha = 0.2, colour = NA) +
-#   geom_line(linewidth = 0.8) +
-#   facet_wrap(~scenario, scales = "fixed") +
-#   scale_colour_manual(values = cols, name = "", labels = agg_labels3) +
-#   scale_fill_manual(values = cols, name = "", labels = agg_labels3) +
-#   scale_linetype_manual(values = c("solid", "dashed") ) +
-#   labs(x = "Number of patches", y = expression(Delta~R[0]) ) +
-#   theme_minimal() +
-#   plotThemeFunc(leg.pos = "bottom")
-# 
-# plot_patches
-# # ggsave("./outputs/R0PatchesbyDistnPref.pdf", width = 12, height = 10, units = "in", dpi = 500)
 
-## TJ: function, generates plots for both preference values (main + supplementary)
+##  function, generates plots for both preference values (main + supplementary)
 plot_patches_list <- lapply(pref_values, function(pref) {
   scenario_res_df |>  
     filter(de2Comp == 1, prefComp == pref) |>  

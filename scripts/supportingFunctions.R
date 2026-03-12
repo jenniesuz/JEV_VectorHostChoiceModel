@@ -214,8 +214,8 @@ refactor_host_dist <- function(df) {
 
 
 generate_distribution_data <- function(
-    n_patches, totalSh, de2comp = 1, hostDist, infC, prefComp = 0.9, Nm, decay = 1,
-    hostDefBeh = FALSE, m_c = NA, m_de = NA
+    n_patches, totalSh, de2comp = 1, hostDist, infC, prefComp = 0.9, Nm, decay = 1
+    #,hostDefBeh = FALSE, m_c = NA, m_de = NA
 ){
   eps <- 1e-10
   # Generate host distributions
@@ -239,13 +239,13 @@ generate_distribution_data <- function(
   }
   
   # proportion of blood meals on competent hosts:
-  if(hostDefBeh) {
-    numBiteV <- (1/3) * Nm / (H_c + eps) 
-    rho_x <- (numBiteV * H_c) / (numBiteV * H_c + 
-                                   ((1-prefComp)/prefComp)^(1/m_de) * numBiteV^(m_c/m_de) * H_de + eps)
-  } else {
+  #if(hostDefBeh) {
+  #  numBiteV <- (1/3) * Nm / (H_c + eps) 
+  #  rho_x <- (numBiteV * H_c) / (numBiteV * H_c + 
+  #                                 ((1-prefComp)/prefComp)^(1/m_de) * numBiteV^(m_c/m_de) * H_de + eps)
+  #} else {
     rho_x <- prefComp * H_c / (prefComp * H_c + (1 - prefComp) * H_de + eps)
-  }
+  #}
   
   return(
     tibble(
