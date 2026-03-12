@@ -24,12 +24,14 @@ This paper has been submitted to PLoS Neglected Tropical Diseases.
 
 ## Contents
 - `scripts/`: contains all code for analyzing the model. Brief descriptions of each file:
+  - **moz_host_distribution.R**: demonstrates how host and vector distribution influences bites on competent hosts.
 
+  - **R0.R**: produces the plots to demonstrate how host and vector distributions vary and the consequences for R0. 
+  - **R0_function.R**: contains the R0 function.
+  
   - **model.R**: the functions needed to carry out numerical simulations of the ordinary differential equation model.
 
-  - **parameters.R**: the parameter values used in numerical simulations of the dynamic model and in calculating R0.
-
-  - **R0.R**: produces the plots to demonstrate how host and vector distributions vary and the consequences for R0.
+  - **parameters.R**: the parameter values used in numerical simulations of the dynamic model.
 
   - **simulate.R**: runs the dynamic model.
   
