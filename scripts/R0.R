@@ -9,7 +9,7 @@ library(lhs)
 library(parallel)
 library(tidyverse)
 library(ggplot2)
-#library(sensitivity)
+library(sensitivity)
 
 #source(here("scripts/parameters.R"))
 source(here("scripts/supportingFunctions.R"))
@@ -116,8 +116,8 @@ scenario_2 <- expand_grid(
   mutate(
     scenario = case_when(
     # hostDist == "equal" ~ "Equal",
-      hostDist == "exp:hostx"  ~ paste("Competent hosts aggregated, \n (decay = ", decay,")",sep = ""),
-      hostDist == "exp:hosty"  ~ paste("Dead-end hosts aggregated, \n (decay = ", decay,")",sep = "") 
+      hostDist == "exp:hostx"  ~ paste("Competent hosts clustered, \n (decay = ", decay,")",sep = ""),
+      hostDist == "exp:hosty"  ~ paste("Dead-end hosts clustered, \n (decay = ", decay,")",sep = "") 
       )  ) |> 
   distinct() 
 #  refactor_host_dist()
@@ -312,8 +312,8 @@ host_dist_params <- c("equal", "exp:hostx", "exp:hosty")
 
 host_dist_labels <- c(
   "equal" = "Equal",
-  "exp:hostx" = "Competent hosts aggregated",
-  "exp:hosty" = "Dead-end hosts aggregated"
+  "exp:hostx" = "Competent hosts clustered",
+  "exp:hosty" = "Dead-end hosts clustered"
 )
 
 parameter_labels <- c(
@@ -375,7 +375,7 @@ run_replicate <- function(replicate_id, host_dist) {
 full_results <- lapply(host_dist_params, function(host_dist) {
   replicate_results <- mclapply(1:n_replicates, function(r) {
     run_replicate(r, host_dist)
-  }, mc.cores = mc.cores)
+  }, mc.cores = mc.cores )
   
   # Combine and add host distribution label
   bind_rows(replicate_results) |> 
@@ -421,7 +421,7 @@ prcc_results <- bind_rows(
           as.data.frame() |> 
           rownames_to_column("Parameter") |> 
           mutate(replicate = r, hostDist = dist)
-      }, mc.cores = mc.cores )
+      }, mc.cores = mc.cores  )
     )
   } )
 )
@@ -445,7 +445,7 @@ prcc_summary |> mutate(
   geom_errorbar(position = position_dodge(width = 0.5), width = 0.4) +
   geom_hline(yintercept = 0, linetype = "dashed") +
   labs(x = "", y = "Partial rank correlation coefficient") +
-  scale_colour_manual(values = cols, name = "Host distribution") +
+  scale_colour_manual(values = c("black","#bdbdbd","#636363"), name = "Host distribution") +
   theme_minimal() +
   plotThemeFunc(c(0.22, 0.3)) +
   theme(

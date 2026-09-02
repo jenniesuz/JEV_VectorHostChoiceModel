@@ -96,7 +96,7 @@ plot_a <- all_distributions2 |>
   geom_bar(stat = "identity") +
   facet_wrap(~scenario1, nrow = 3, as.table = F, drop = F) +
   # scale_fill_brewer(palette = "Dark2", name = "Host species") +
-  scale_fill_manual(values = cols[c(3, 5)], name = "Host species") +
+  scale_fill_manual(values = c("#bdbdbd","#636363"), name = "Host species") +
   labs(x = "Patch", y = "Number of hosts", 
        title = "A) Distribution of hosts across patches") +
   theme_minimal(base_size = 12) +
