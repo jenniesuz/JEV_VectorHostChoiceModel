@@ -8,7 +8,7 @@ library(here)
 
 # read in scripts
 source(here(".//scripts//model.R"))
-#source(here(".//scripts//parameters.R"))
+source(here(".//scripts//parameters.R"))
 source(here(".//scripts//supportingFunctions.R"))
 
 ##************parameters*************
@@ -49,7 +49,7 @@ all_sims <- lapply(pref_values, function(birdPrefs) {
     mosAgg = paste("Interference = ", infC)
     ) |> refactor_host_dist()
   
-  sims <- mclapply(1:nrow(combs), function(x){
+  sims <- lapply(1:nrow(combs), function(x){
     
     ic <- initialCondsFunc(
       nPatches = combs$nPatches[x]
@@ -194,6 +194,7 @@ dyn |>
     legend.position = "bottom")
 
 # ggsave("./outputs/combined_pltJSL_main.pdf", width = 12, height = 12, units = "in", dpi = 500)
+# ggsave("./outputs/combined_pltJSL_main.tiff", width = 12, height = 12, units = "in", dpi = 500, device = "tiff")
 
 ## TJ: Supplementary combined figure (pref = 0.9)
 ( (plot_host_comp_supp/plot_patches_supp) | plot_dynamics_supp ) +
@@ -213,6 +214,7 @@ dyn |>
     legend.position = "bottom")
 
 # ggsave("./outputs/combined_pltJSL_supp.pdf", width = 12, height = 12, units = "in", dpi = 500)
+# ggsave("./outputs/combined_pltJSL_supp.tiff", width = 12, height = 12, units = "in", dpi = 500, device = "tiff")
 
 ### copy files to LaTeX directory. Clumsy but works for now.
 latex_dir   <- "../plots/"
